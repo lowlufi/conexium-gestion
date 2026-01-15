@@ -1,0 +1,12 @@
+name = "conexium-gestion"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".vercel/output/static"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "conexium-gestion-db"
+database_id = "e74afb84-dc30-4518-bb59-53d5d2168b32"
+
+[vars]
+ENVIRONMENT = "production"
