@@ -1,13 +1,13 @@
-import { setupDevPlatform } from '@cloudflare/next-on-pages/next-dev';
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Configuración para Cloudflare Pages - pages router usa edge por defecto
+  // Exportación estática para Cloudflare Pages
+  output: 'export',
+  // Desactivar optimización de imágenes (no soportada en export estático)
+  images: {
+    unoptimized: true,
+  },
+  // Trailing slash para mejor compatibilidad
+  trailingSlash: true,
 };
-
-// Configuración para desarrollo local con bindings de Cloudflare
-if (process.env.NODE_ENV === 'development') {
-  await setupDevPlatform();
-}
 
 export default nextConfig;
