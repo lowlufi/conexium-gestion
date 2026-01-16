@@ -13,9 +13,11 @@ import {
   Loader2,
   Calendar,
   ExternalLink,
-  CalendarDays
+  CalendarDays,
+  FileSpreadsheet
 } from 'lucide-react';
 import { proyectosAPI, tareasAPI, Proyecto, Tarea } from '@/lib/api';
+import ImportarExcel from '@/components/ImportarExcel';
 
 interface TareaConSubtareas extends Tarea {
   subtareas?: TareaConSubtareas[];
@@ -28,6 +30,7 @@ export default function Cronograma() {
   const [tareas, setTareas] = useState<TareaConSubtareas[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingTareas, setLoadingTareas] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   useEffect(() => {
     loadProyectos();
@@ -214,10 +217,19 @@ export default function Cronograma() {
             ))}
           </select>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-600 transition-colors">
-          <Plus size={18} />
-          Nueva Tarea
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="flex items-center gap-2 px-4 py-2 border border-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-colors"
+          >
+            <FileSpreadsheet size={18} />
+            Importar Excel
+          </button>
+          <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-600 transition-colors">
+            <Plus size={18} />
+            Nueva Tarea
+          </button>
+        </div>
       </div>
 
       {/* Project Progress Bar */}
@@ -307,6 +319,19 @@ export default function Cronograma() {
           </table>
         )}
       </div>
+
+      {/* Modal Importar Excel */}
+      {showImportModal && currentProyecto && (
+        <ImportarExcel
+          proyecto={currentProyecto}
+          onClose={() => setShowImportModal(false)}
+          onSuccess={() => {
+            if (selectedProyecto) {
+              loadTareas(selectedProyecto);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
