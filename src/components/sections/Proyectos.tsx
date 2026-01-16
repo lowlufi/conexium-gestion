@@ -183,6 +183,19 @@ export default function Proyectos() {
                     </div>
                   )}
                 </div>
+
+                {/* Drive Button */}
+                {proyecto.drive_url && (
+                  <a
+                    href={proyecto.drive_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 flex items-center justify-center gap-2 w-full py-2 px-4 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <ExternalLink size={16} />
+                    Abrir en Google Drive
+                  </a>
+                )}
               </div>
             </div>
           );

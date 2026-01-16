@@ -11,7 +11,9 @@ import {
   Clock,
   AlertCircle,
   Loader2,
-  Calendar
+  Calendar,
+  ExternalLink,
+  CalendarDays
 } from 'lucide-react';
 import { proyectosAPI, tareasAPI, Proyecto, Tarea } from '@/lib/api';
 
@@ -179,6 +181,9 @@ export default function Cronograma() {
           {tarea.responsable_nombre || '-'}
         </td>
         <td className="px-4 py-4 text-sm text-neutral-500">
+          {tarea.fecha_inicio ? new Date(tarea.fecha_inicio).toLocaleDateString('es-CL') : '-'}
+        </td>
+        <td className="px-4 py-4 text-sm text-neutral-500">
           {tarea.fecha_fin ? new Date(tarea.fecha_fin).toLocaleDateString('es-CL') : '-'}
         </td>
       </tr>
@@ -218,13 +223,42 @@ export default function Cronograma() {
       {/* Project Progress Bar */}
       {currentProyecto && (
         <div className="bg-white rounded-xl p-6 shadow-sm border border-neutral-100">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-semibold text-neutral-800">{currentProyecto.nombre}</h3>
-            <span className="text-lg font-bold" style={{ color: currentProyecto.color }}>
-              {currentProyecto.total_tareas
-                ? Math.round((currentProyecto.tareas_completadas || 0) / currentProyecto.total_tareas * 100)
-                : 0}%
-            </span>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-semibold text-neutral-800 text-lg">{currentProyecto.nombre}</h3>
+              <div className="flex items-center gap-4 mt-1 text-sm text-neutral-500">
+                {currentProyecto.fecha_inicio && (
+                  <span className="flex items-center gap-1">
+                    <CalendarDays size={14} />
+                    Inicio: {new Date(currentProyecto.fecha_inicio).toLocaleDateString('es-CL')}
+                  </span>
+                )}
+                {currentProyecto.fecha_fin && (
+                  <span className="flex items-center gap-1">
+                    <Calendar size={14} />
+                    Fin: {new Date(currentProyecto.fecha_fin).toLocaleDateString('es-CL')}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {currentProyecto.drive_url && (
+                <a
+                  href={currentProyecto.drive_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-lg transition-colors text-sm"
+                >
+                  <ExternalLink size={16} />
+                  Drive
+                </a>
+              )}
+              <span className="text-lg font-bold" style={{ color: currentProyecto.color }}>
+                {currentProyecto.total_tareas
+                  ? Math.round((currentProyecto.tareas_completadas || 0) / currentProyecto.total_tareas * 100)
+                  : 0}%
+              </span>
+            </div>
           </div>
           <div className="w-full bg-neutral-100 rounded-full h-3">
             <div
@@ -258,12 +292,13 @@ export default function Cronograma() {
           <table className="w-full">
             <thead className="bg-neutral-50 border-b border-neutral-200">
               <tr>
-                <th className="text-left px-6 py-4 text-sm font-semibold text-neutral-600 w-1/3">Tarea</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-neutral-600 w-1/4">Tarea</th>
                 <th className="text-left px-4 py-4 text-sm font-semibold text-neutral-600">Estado</th>
                 <th className="text-left px-4 py-4 text-sm font-semibold text-neutral-600">Prioridad</th>
                 <th className="text-left px-4 py-4 text-sm font-semibold text-neutral-600">Progreso</th>
                 <th className="text-left px-4 py-4 text-sm font-semibold text-neutral-600">Responsable</th>
-                <th className="text-left px-4 py-4 text-sm font-semibold text-neutral-600">Fecha</th>
+                <th className="text-left px-4 py-4 text-sm font-semibold text-neutral-600">Inicio</th>
+                <th className="text-left px-4 py-4 text-sm font-semibold text-neutral-600">Fin</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
