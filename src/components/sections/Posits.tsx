@@ -1,78 +1,98 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, X, GripVertical, Check, Calendar } from 'lucide-react';
-import { Posit, PostitColor } from '@/types';
+import { useState, useEffect } from 'react';
+import { Plus, X, GripVertical, Check, Calendar, Loader2, StickyNote } from 'lucide-react';
+import { positsAPI, proyectosAPI, Posit, Proyecto } from '@/lib/api';
 
-const colorClasses: Record<PostitColor, { bg: string; border: string; text: string }> = {
-  amarillo: { bg: 'bg-yellow-100', border: 'border-yellow-300', text: 'text-yellow-800' },
-  rosa: { bg: 'bg-pink-100', border: 'border-pink-300', text: 'text-pink-800' },
-  verde: { bg: 'bg-green-100', border: 'border-green-300', text: 'text-green-800' },
-  azul: { bg: 'bg-blue-100', border: 'border-blue-300', text: 'text-blue-800' },
-  naranja: { bg: 'bg-orange-100', border: 'border-orange-300', text: 'text-orange-800' },
+const colorClasses: Record<string, { bg: string; border: string; text: string }> = {
+  yellow: { bg: 'bg-yellow-100', border: 'border-yellow-300', text: 'text-yellow-800' },
+  pink: { bg: 'bg-pink-100', border: 'border-pink-300', text: 'text-pink-800' },
+  green: { bg: 'bg-green-100', border: 'border-green-300', text: 'text-green-800' },
+  blue: { bg: 'bg-blue-100', border: 'border-blue-300', text: 'text-blue-800' },
+  orange: { bg: 'bg-orange-100', border: 'border-orange-300', text: 'text-orange-800' },
 };
 
-const demoPostits: Posit[] = [
-  { id: 1, proyecto_id: 1, contenido: 'Revisar informe de avance semanal con el equipo de Legado', color: 'amarillo', prioridad: 1, creado_por: 1, fecha_limite: '2024-01-20', completado: false, created_at: '' },
-  { id: 2, proyecto_id: 1, contenido: 'Coordinar reunión con cliente para validación de entregables', color: 'rosa', prioridad: 2, creado_por: 1, fecha_limite: '2024-01-22', completado: false, created_at: '' },
-  { id: 3, proyecto_id: 2, contenido: 'Actualizar documentación técnica del módulo de reportes', color: 'verde', prioridad: 3, creado_por: 1, completado: false, created_at: '' },
-  { id: 4, proyecto_id: 2, contenido: 'Preparar presentación para directorio', color: 'azul', prioridad: 4, creado_por: 1, fecha_limite: '2024-01-25', completado: false, created_at: '' },
-  { id: 5, proyecto_id: 3, contenido: 'Revisar presupuesto Q2 con finanzas', color: 'naranja', prioridad: 5, creado_por: 1, fecha_limite: '2024-01-18', completado: true, created_at: '' },
-];
-
-const proyectos = [
-  { id: 1, nombre: 'Programa Legado' },
-  { id: 2, nombre: 'SLEP SUR' },
-  { id: 3, nombre: 'RFT' },
-];
-
 export default function Posits() {
-  const [posits, setPostits] = useState<Posit[]>(demoPostits);
+  const [posits, setPostits] = useState<Posit[]>([]);
+  const [proyectos, setProyectos] = useState<Proyecto[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [newPostit, setNewPostit] = useState({
     contenido: '',
-    color: 'amarillo' as PostitColor,
-    proyecto_id: 1,
-    fecha_limite: ''
+    color: 'yellow' as Posit['color'],
+    proyecto_id: 0,
+    fecha_vencimiento: ''
   });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [positsRes, proyectosRes] = await Promise.all([
+        positsAPI.list(),
+        proyectosAPI.list(),
+      ]);
+      setPostits(positsRes.posits);
+      setProyectos(proyectosRes.proyectos);
+      if (proyectosRes.proyectos.length > 0) {
+        setNewPostit(prev => ({ ...prev, proyecto_id: proyectosRes.proyectos[0].id }));
+      }
+    } catch (err) {
+      console.error('Error loading posits:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const pendingPostits = posits.filter(p => !p.completado);
   const completedPostits = posits.filter(p => p.completado);
 
-  const toggleComplete = (id: number) => {
-    setPostits(prev => prev.map(p =>
-      p.id === id ? { ...p, completado: !p.completado } : p
-    ));
+  const toggleComplete = async (id: number, completado: boolean) => {
+    try {
+      await positsAPI.update(id, { completado: !completado });
+      setPostits(prev => prev.map(p =>
+        p.id === id ? { ...p, completado: !completado } : p
+      ));
+    } catch (err) {
+      console.error('Error updating posit:', err);
+    }
   };
 
-  const deletePostit = (id: number) => {
-    setPostits(prev => prev.filter(p => p.id !== id));
+  const deletePostit = async (id: number) => {
+    try {
+      await positsAPI.delete(id);
+      setPostits(prev => prev.filter(p => p.id !== id));
+    } catch (err) {
+      console.error('Error deleting posit:', err);
+    }
   };
 
-  const addPostit = () => {
+  const addPostit = async () => {
     if (!newPostit.contenido.trim()) return;
 
-    const newId = Math.max(...posits.map(p => p.id)) + 1;
-    setPostits(prev => [...prev, {
-      id: newId,
-      proyecto_id: newPostit.proyecto_id,
-      contenido: newPostit.contenido,
-      color: newPostit.color,
-      prioridad: prev.length + 1,
-      creado_por: 1,
-      fecha_limite: newPostit.fecha_limite || undefined,
-      completado: false,
-      created_at: new Date().toISOString()
-    }]);
+    try {
+      const res = await positsAPI.create({
+        contenido: newPostit.contenido,
+        color: newPostit.color,
+        proyecto_id: newPostit.proyecto_id || undefined,
+        fecha_vencimiento: newPostit.fecha_vencimiento || undefined,
+        columna: 'esta_semana',
+      });
 
-    setNewPostit({ contenido: '', color: 'amarillo', proyecto_id: 1, fecha_limite: '' });
-    setShowModal(false);
+      await loadData();
+      setNewPostit({ contenido: '', color: 'yellow', proyecto_id: proyectos[0]?.id || 0, fecha_vencimiento: '' });
+      setShowModal(false);
+    } catch (err) {
+      console.error('Error creating posit:', err);
+    }
   };
 
   const PostitCard = ({ posit }: { posit: Posit }) => {
-    const colors = colorClasses[posit.color];
-    const proyecto = proyectos.find(p => p.id === posit.proyecto_id);
-    const isOverdue = posit.fecha_limite && new Date(posit.fecha_limite) < new Date() && !posit.completado;
+    const colors = colorClasses[posit.color] || colorClasses.yellow;
+    const isOverdue = posit.fecha_vencimiento && new Date(posit.fecha_vencimiento) < new Date() && !posit.completado;
 
     return (
       <div
@@ -86,7 +106,7 @@ export default function Posits() {
 
         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100">
           <button
-            onClick={() => toggleComplete(posit.id)}
+            onClick={() => toggleComplete(posit.id, posit.completado)}
             className={`p-1 rounded hover:bg-white/50 ${posit.completado ? 'text-success' : 'text-neutral-400'}`}
           >
             <Check size={16} />
@@ -104,11 +124,11 @@ export default function Posits() {
         </p>
 
         <div className="mt-3 flex items-center justify-between">
-          <span className="text-xs text-neutral-500">{proyecto?.nombre}</span>
-          {posit.fecha_limite && (
+          <span className="text-xs text-neutral-500">{posit.proyecto_nombre || 'General'}</span>
+          {posit.fecha_vencimiento && (
             <span className={`text-xs flex items-center gap-1 ${isOverdue ? 'text-danger font-medium' : 'text-neutral-500'}`}>
               <Calendar size={12} />
-              {new Date(posit.fecha_limite).toLocaleDateString('es-CL')}
+              {new Date(posit.fecha_vencimiento).toLocaleDateString('es-CL')}
             </span>
           )}
         </div>
@@ -116,13 +136,21 @@ export default function Posits() {
     );
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold text-neutral-800">Tareas Urgentes de la Semana</h3>
-          <p className="text-sm text-neutral-500">Arrastra los posits para reorganizar prioridades</p>
+          <p className="text-sm text-neutral-500">Notas rápidas para recordatorios importantes</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
@@ -138,11 +166,18 @@ export default function Posits() {
         <h4 className="text-sm font-semibold text-neutral-600 mb-4 uppercase tracking-wider">
           Pendientes ({pendingPostits.length})
         </h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {pendingPostits.map(posit => (
-            <PostitCard key={posit.id} posit={posit} />
-          ))}
-        </div>
+        {pendingPostits.length === 0 ? (
+          <div className="text-center py-8 bg-neutral-50 rounded-xl">
+            <StickyNote size={40} className="mx-auto text-neutral-300 mb-2" />
+            <p className="text-neutral-500">No hay posits pendientes</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {pendingPostits.map(posit => (
+              <PostitCard key={posit.id} posit={posit} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Completed Posits */}
@@ -189,6 +224,7 @@ export default function Posits() {
                   onChange={(e) => setNewPostit({ ...newPostit, proyecto_id: Number(e.target.value) })}
                   className="w-full px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300"
                 >
+                  <option value={0}>General</option>
                   {proyectos.map(p => (
                     <option key={p.id} value={p.id}>{p.nombre}</option>
                   ))}
@@ -198,7 +234,7 @@ export default function Posits() {
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">Color</label>
                 <div className="flex gap-2">
-                  {(Object.keys(colorClasses) as PostitColor[]).map(color => (
+                  {(Object.keys(colorClasses) as Posit['color'][]).map(color => (
                     <button
                       key={color}
                       onClick={() => setNewPostit({ ...newPostit, color })}
@@ -214,8 +250,8 @@ export default function Posits() {
                 <label className="block text-sm font-medium text-neutral-700 mb-1">Fecha límite (opcional)</label>
                 <input
                   type="date"
-                  value={newPostit.fecha_limite}
-                  onChange={(e) => setNewPostit({ ...newPostit, fecha_limite: e.target.value })}
+                  value={newPostit.fecha_vencimiento}
+                  onChange={(e) => setNewPostit({ ...newPostit, fecha_vencimiento: e.target.value })}
                   className="w-full px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300"
                 />
               </div>
